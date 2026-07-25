@@ -1,17 +1,16 @@
-export async function onRequest(context) {
-    // Contents of context object
-    const {
-      request, // same as existing Worker API
-      env, // same as existing Worker API
-      params, // if filename includes [id] or [[path]]
-      waitUntil, // same as ctx.waitUntil in existing Worker API
-      next, // used for middleware or to fetch assets
-      data, // arbitrary space for passing data between middlewares
-    } = context;
-    console.log(env)
-    console.log(params.id)
-    await env.img_url.delete(params.id);
-    const info = JSON.stringify(params.id);
-    return new Response(info);
+import { jsonResponse } from "../../../utils/http.js";
+import { getMetadata } from "../../../utils/metadata.js";
+import { deleteShortLink } from "../../../utils/shortlink.js";
 
-  }
+export async function onRequest(context) {
+    const { env, params } = context;
+
+    const metadata = await getMetadata(env, params.id);
+    await env.img_url.delete(params.id);
+
+    if (metadata?.shortId) {
+        await deleteShortLink(env, metadata.shortId);
+    }
+
+    return jsonResponse(params.id);
+}
